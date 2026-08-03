@@ -35,6 +35,9 @@ Bu, bir takvim ekranının tek istekte ihtiyacı olan her şeyi almasını sağl
 
 ### Kapsam dışı
 
+Bunlar bilinçli olarak kapsam dışında bırakıldı; yapılamadığı için değil, bir haftalık
+kapsama sığmadığı veya projenin amacına hizmet etmediği için.
+
 | Konu | Gerekçe |
 |---|---|
 | Frontend / arayüz | Proje bir backend service olarak tanımlandı |
@@ -53,28 +56,22 @@ Bu, bir takvim ekranının tek istekte ihtiyacı olan her şeyi almasını sağl
 
 ## 3. Teknoloji Seçimleri
 
-| Katman | Seçim | Gerekçe |
-|---|---|---|
-| Runtime | Node.js 24 LTS | Staj boyunca işlenen runtime; non-blocking I/O bu tip I/O ağırlıklı servise uygun. Lokal, container ve CI aynı major sürüme sabitlendi |
-| Dil | TypeScript | Derleme zamanı tip güvenliği; veri modelini `interface`/`type` ile netleştirir |
-| Web framework | Express | İşlenen framework; middleware zinciri katmanlı mimariye doğal oturuyor |
-| Veritabanı | MongoDB | Not/görev/etkinlik kayıtları şema esnekliği istiyor (etiketler, tipe göre değişen alanlar); ilişkiler sığ |
-| ODM | Mongoose | Şema doğrulama, index tanımı ve tip üretimi tek yerde |
-| Validation | Zod | Hem HTTP input hem de env config doğrulaması için tek araç; TypeScript tipini şemadan türetir |
-| Auth | jsonwebtoken + bcrypt | Stateless JWT, yatay ölçeklenebilir; bcrypt parola hash için standart |
-| Logging | Pino | JSON formatında structured log; düşük overhead |
-| Test | Vitest + Supertest | Vitest TypeScript'i doğrudan çalıştırır; Supertest HTTP katmanını uçtan uca test eder |
-| Lint/Format | ESLint + Prettier | CI'da quality gate olarak kullanılır |
-| Container | Docker (multi-stage) + Compose | Build ve runtime ayrımı ile küçük image; Compose ile API + DB tek komutla |
-| CI/CD | GitHub Actions + GHCR | Repo ile aynı yerde; GHCR ek hesap gerektirmez |
+| Katman | Seçim |
+|---|---|
+| Runtime | Node.js 24 LTS |
+| Dil | TypeScript |
+| Web framework | Express |
+| Veritabanı | MongoDB |
+| ODM | Mongoose |
+| Validation | Zod |
+| Auth | jsonwebtoken + bcrypt |
+| Logging | Pino |
+| Test | Vitest + Supertest |
+| Lint/Format | ESLint + Prettier |
+| Container | Docker (multi-stage) + Compose |
+| CI/CD | GitHub Actions + GHCR |
 
-### Neden MongoDB, PostgreSQL değil?
-
-Veri modelinde ilişkiler sığ ve tek yönlü (her kayıt bir kullanıcıya ait, aralarında
-opsiyonel referanslar var). Karmaşık `JOIN` ihtiyacı yok. Buna karşılık etiket listeleri
-ve **etkinlik tipine göre değişen alanlar** var — döküman modeli bunu daha az sürtünmeyle
-karşılıyor. İlişkisel bütünlük kritik olsaydı (ör. finansal işlem) PostgreSQL tercih
-edilirdi.
+ESLint ve Prettier ayrıca CI'da quality gate olarak kullanılır.
 
 ---
 
@@ -86,7 +83,6 @@ edilirdi.
 
 | Alan | Tip | Kural |
 |---|---|---|
-| `_id` | ObjectId | otomatik |
 | `email` | string | zorunlu, benzersiz, küçük harfe çevrilir |
 | `passwordHash` | string | zorunlu, sorgularda dönmez (`select: false`) |
 | `name` | string | zorunlu, 2–60 karakter |
@@ -148,16 +144,6 @@ Mongoose tarafında `participants` alanı ayrıca şema seviyesinde de doğrulan
 katmanının savunması olur.
 
 ### 4.2 İlişkiler
-
-```
-User 1 ─── n Note
-User 1 ─── n Task
-User 1 ─── n Event
-
-Event 1 ─── n Note    (etkinlik/toplantı notları)
-Event 1 ─── n Task    (etkinlikten çıkan aksiyonlar)
-Note  1 ─── n Task    (bir nottan çıkan işler)
-```
 
 Tüm ilişkiler **reference** ile kurulur, embedding kullanılmaz. Sebep: bir etkinliğin
 notu ondan bağımsız güncellenebilmeli ve tek başına sorgulanabilmeli.
@@ -242,7 +228,8 @@ filtrelenir. Parametre verilmezse hepsi döner.
 
 ### 5.2 Yanıt Sözleşmesi
 
-Tüm başarılı yanıtlar aynı zarfı kullanır:
+Tüm endpoint'ler aynı zarfı kullanır. Amaç: istemcinin her yanıtı aynı şekilde
+ayrıştırabilmesi.
 
 ```jsonc
 // Tek kayıt
@@ -255,7 +242,7 @@ Tüm başarılı yanıtlar aynı zarfı kullanır:
 }
 ```
 
-Tüm hata yanıtları:
+Tüm hatalar da tek bir yapıdan geçer:
 
 ```jsonc
 {
@@ -269,6 +256,9 @@ Tüm hata yanıtları:
 }
 ```
 
+`details` yalnızca alan bazlı hata varsa döner. `500` durumunda iç detay istemciye
+sızdırılmaz, yalnızca log'a yazılır.
+
 ### 5.3 Hata Kodları
 
 | HTTP | `code` | Ne zaman |
@@ -276,105 +266,12 @@ Tüm hata yanıtları:
 | 400 | `VALIDATION_ERROR` | Zod şeması geçmedi |
 | 401 | `UNAUTHORIZED` | Token yok, geçersiz veya süresi dolmuş |
 | 403 | `FORBIDDEN` | Kayıt başkasına ait |
-| 404 | `NOT_FOUND` | Kayıt bulunamadı |
+| 404 | `NOT_FOUND` | Kayıt bulunamadı (geçersiz ObjectId dahil) |
 | 409 | `CONFLICT` | E-posta zaten kayıtlı / etkinlik saati çakışıyor |
-| 500 | `INTERNAL_ERROR` | Beklenmeyen hata (detay sızdırılmaz, log'a yazılır) |
+| 500 | `INTERNAL_ERROR` | Beklenmeyen hata |
 
-### 5.4 Örnek İstekler
-
-**Toplantı oluşturma**
-
-```jsonc
-POST /api/v1/events
-{
-  "type": "meeting",
-  "title": "Sprint planlama",
-  "startsAt": "2026-08-10T09:00:00Z",
-  "endsAt": "2026-08-10T10:00:00Z",
-  "location": "Toplantı Odası 2",
-  "participants": ["ayse@sirket.com", "mehmet@sirket.com"]
-}
-```
-
-**Kişisel etkinlik oluşturma**
-
-```jsonc
-POST /api/v1/events
-{
-  "type": "personal",
-  "title": "Spor salonu",
-  "startsAt": "2026-08-10T18:00:00Z",
-  "endsAt": "2026-08-10T19:30:00Z"
-}
-```
-
-**Reddedilen istek — kişisel etkinliğe katılımcı**
-
-```jsonc
-POST /api/v1/events
-{ "type": "personal", "title": "Doktor randevusu", "participants": ["x@y.com"], ... }
-
-→ 400
-{
-  "error": {
-    "code": "VALIDATION_ERROR",
-    "message": "Girdi doğrulaması başarısız",
-    "details": [
-      { "field": "participants", "message": "Kişisel etkinlikte katılımcı listesi kullanılamaz" }
-    ]
-  }
-}
-```
-
-### 5.5 `/agenda` Örnek Yanıt
-
-`GET /api/v1/agenda?from=2026-08-10&to=2026-08-11`
-
-```jsonc
-{
-  "data": {
-    "from": "2026-08-10",
-    "to": "2026-08-11",
-    "days": [
-      {
-        "date": "2026-08-10",
-        "events": [
-          {
-            "id": "66b0...",
-            "type": "meeting",
-            "title": "Sprint planlama",
-            "startsAt": "2026-08-10T09:00:00.000Z",
-            "endsAt": "2026-08-10T10:00:00.000Z",
-            "location": "Toplantı Odası 2",
-            "participants": ["ayse@sirket.com", "mehmet@sirket.com"]
-          },
-          {
-            "id": "66b2...",
-            "type": "personal",
-            "title": "Spor salonu",
-            "startsAt": "2026-08-10T18:00:00.000Z",
-            "endsAt": "2026-08-10T19:30:00.000Z"
-          }
-        ],
-        "tasks": [
-          {
-            "id": "66b1...",
-            "title": "API dokümanını gözden geçir",
-            "status": "todo",
-            "priority": "high",
-            "dueDate": "2026-08-10T17:00:00.000Z"
-          }
-        ]
-      },
-      { "date": "2026-08-11", "events": [], "tasks": [] }
-    ]
-  },
-  "meta": { "totalEvents": 2, "totalTasks": 1 }
-}
-```
-
-Boş günler de döner — takvim arayüzünün eksik gün için ayrıca istek atmasına gerek kalmaz.
-Etkinlikler gün içinde `startsAt`'a göre sıralı gelir.
+Bu dönüşüm tek noktada, `errorHandler` middleware'inde yapılır. Service katmanı yalnızca
+`AppError` türevi bir hata fırlatır; HTTP kodunu bilmez.
 
 ---
 
@@ -436,81 +333,23 @@ tekrarı olmaz.
 Klasörler **katmana göre** ayrılmıştır. Böylece proje ağacı açıldığında mimari doğrudan
 görünür: `controllers/`, `services/`, `repositories/` yan yana durur.
 
-```
-src/
-├── config/
-│   ├── env.ts                 # Zod ile env doğrulama (uygulama açılışında)
-│   └── logger.ts              # Pino instance
-│
-├── db/
-│   └── connection.ts          # Mongoose bağlantısı — Singleton
-│
-├── models/                    # Mongoose şemaları
-│   ├── user.model.ts
-│   ├── note.model.ts
-│   ├── task.model.ts
-│   └── event.model.ts
-│
-├── repositories/              # Veri erişimi — Mongoose SADECE burada
-│   ├── user.repository.ts
-│   ├── note.repository.ts
-│   ├── task.repository.ts
-│   └── event.repository.ts
-│
-├── services/                  # İş kuralları
-│   ├── auth.service.ts
-│   ├── note.service.ts
-│   ├── task.service.ts
-│   ├── event.service.ts
-│   └── agenda.service.ts
-│
-├── controllers/               # HTTP req/res
-│   ├── auth.controller.ts
-│   ├── note.controller.ts
-│   ├── task.controller.ts
-│   ├── event.controller.ts
-│   ├── agenda.controller.ts
-│   └── health.controller.ts
-│
-├── routes/                    # Yol tanımları
-│   ├── index.ts               # /api/v1 altında hepsini birleştirir
-│   ├── auth.routes.ts
-│   ├── note.routes.ts
-│   ├── task.routes.ts
-│   ├── event.routes.ts
-│   ├── agenda.routes.ts
-│   └── health.routes.ts
-│
-├── schemas/                   # Zod doğrulama şemaları
-│   ├── auth.schema.ts
-│   ├── note.schema.ts
-│   ├── task.schema.ts
-│   ├── event.schema.ts        # discriminatedUnion burada
-│   └── common.schema.ts       # sayfalama, ObjectId, tarih aralığı
-│
-├── middleware/
-│   ├── auth.ts                # JWT doğrulama
-│   ├── validate.ts            # Zod şemasını middleware'e çevirir
-│   ├── requestLogger.ts       # requestId + istek log'u
-│   ├── errorHandler.ts        # tek noktadan hata → HTTP yanıtı
-│   └── notFound.ts
-│
-├── bus/
-│   └── activityBus.ts         # Observer (pub/sub)
-│
-├── types/
-│   ├── express.d.ts           # req.user tip genişletmesi
-│   └── index.ts
-│
-├── utils/
-│   ├── AppError.ts            # temel hata sınıfı
-│   ├── httpErrors.ts          # NotFoundError, ConflictError, ...
-│   ├── pagination.ts
-│   └── dateRange.ts
-│
-├── app.ts                     # Express uygulaması (test edilebilir, port dinlemez)
-└── server.ts                  # port dinler, graceful shutdown
-```
+| Klasör | İçerik |
+|---|---|
+| `config/` | Env doğrulama (Zod), Pino logger |
+| `db/` | Mongoose bağlantısı — Singleton |
+| `models/` | Mongoose şemaları |
+| `repositories/` | Veri erişimi — Mongoose sorguları **yalnızca** burada |
+| `services/` | İş kuralları |
+| `controllers/` | HTTP req/res |
+| `routes/` | Yol tanımları |
+| `schemas/` | Zod doğrulama şemaları (`event.schema.ts` içinde `discriminatedUnion`) |
+| `middleware/` | auth, validate, requestLogger, errorHandler, notFound |
+| `bus/` | Observer (pub/sub) |
+| `types/` | Tip genişletmeleri (`req.user`) |
+| `utils/` | `AppError`, HTTP hataları, sayfalama, tarih yardımcıları |
+
+Kök seviyede `app.ts` (Express uygulaması) ve `server.ts` (port dinleme, graceful
+shutdown) bulunur.
 
 **İki tasarım notu:**
 
@@ -525,44 +364,47 @@ kullanmak okuyanı yanıltırdı.
 
 ## 7. Design Pattern Kullanımı
 
-Üç pattern, her biri gerçek bir ihtiyaca karşılık geliyor — pattern uğruna pattern yok.
+Üç pattern kullanıldı. Her biri somut bir ihtiyaca karşılık geliyor — pattern uğruna
+pattern yok.
 
 ### 7.1 Singleton — veritabanı bağlantısı
 
 `db/connection.ts` tek bir Mongoose bağlantısı tutar ve tekrar çağrıldığında aynısını
 döner.
 
-**Neden gerekli:** Her istekte yeni bağlantı açmak connection pool'u tüketir. Tek
-bağlantının paylaşılması Mongoose'un pool yönetimini doğru çalıştırır.
+**Neden:** Her istekte yeni bağlantı açmak connection pool'u tüketir. Tek bağlantının
+paylaşılması Mongoose'un kendi pool yönetiminin doğru çalışmasını sağlar.
 
 ### 7.2 Repository — veri erişiminin soyutlanması
 
 Her kaynağın bir `*.repository.ts` dosyası var; Mongoose'a ait tek satır kod orada.
 
-**Neden gerekli:** Service katmanı `Note.find({...})` yerine `noteRepository.findMany()`
-çağırır. Bunun iki somut getirisi var: service'i test ederken repository'yi sahte bir
-nesne ile değiştirebiliyoruz (DB gerekmiyor), ve ileride ODM değişirse etki tek dosyada
+**Neden:** Service katmanı `Note.find({...})` yerine `noteRepository.findMany()` çağırır.
+İki somut getirisi var: service'i test ederken repository'yi sahte bir nesneyle
+değiştirebiliyoruz (veritabanı gerekmiyor), ve ileride ODM değişirse etki tek dosyada
 kalıyor.
 
 ### 7.3 Observer (pub/sub) — aktivite kaydı
 
-`bus/activityBus.ts` bir `EventEmitter`. Bir görev `done` olduğunda veya bir toplantı
+`bus/activityBus.ts` bir `EventEmitter`. Bir görev tamamlandığında veya bir etkinlik
 oluşturulduğunda service ilgili olayı yayınlar; dinleyici log'a yazar.
 
 ```
-task.completed   → aktivite log'u
-event.created    → aktivite log'u
+task.completed  ·  task.created  ·  event.created  ·  note.created
 ```
 
-**Neden gerekli:** Görev tamamlama akışının "tamamlandığında ne olacağı" ile ilgilenmesi
+**Neden:** Görev tamamlama akışının "tamamlandığında başka ne olacağı" ile ilgilenmesi
 gerekmiyor. İleride bildirim veya istatistik eklenirse yeni bir dinleyici yazılır,
-service'e dokunulmaz.
+service koduna dokunulmaz.
 
 ### Bilinçli olarak kullanılmayanlar
 
-Factory ve Strategy pattern'leri değerlendirildi ve **eklenmedi**. Bu projede tek bir
-veri kaynağı ve tek bir doğrulama stratejisi var; bu pattern'ler yalnızca soyutlama
-katmanı ekler, karşılığında bir esneklik getirmez. Bu, over-engineering olurdu.
+**Factory** ve **Strategy** pattern'leri değerlendirildi ve **eklenmedi**. Bu projede tek
+bir veri kaynağı ve tek bir doğrulama stratejisi var; bu pattern'ler yalnızca bir
+soyutlama katmanı ekler, karşılığında hiçbir esneklik getirmez. Eklenseydi
+over-engineering olurdu.
+
+Bir pattern'i kullanmamak da bir tasarım kararıdır ve gerekçelendirilmesi gerekir.
 
 ---
 
@@ -652,10 +494,6 @@ Hedef %100 kapsama değil, **riskli yolların testli olması**.
 | **Perşembe** | Testler, multi-stage Dockerfile, CI/CD pipeline, Postman collection |
 | **Cuma** | README, son refactor, sunum |
 
-**Risk yönetimi:** Notes kaynağı kasıtlı olarak ilk yazılıyor ve eksiksiz bitiriliyor.
-Tasks ve Events aynı katman kalıbını tekrarladığı için Çarşamba hızlı geçiyor.
-Gecikme olursa sırasıyla şunlar kapsamdan çıkarılır: HTML demo sayfası → Note/Task
-üzerindeki `eventId` bağlantıları → etkinlik çakışma kontrolü.
 
 ---
 
