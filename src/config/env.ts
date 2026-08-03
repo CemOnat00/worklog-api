@@ -37,7 +37,7 @@ const parsed = envSchema.safeParse(process.env);
 if (!parsed.success) {
   // Logger burada henüz kurulmadı (logger'ın kendisi env'e bağımlı),
   // bu yüzden bilinçli olarak console.error kullanılıyor.
-  console.error('\n❌ Ortam değişkenleri geçersiz. Uygulama başlatılamıyor:\n');
+  console.error('\n[HATA] Ortam degiskenleri gecersiz. Uygulama baslatilamiyor:\n');
   for (const issue of parsed.error.issues) {
     console.error(`   • ${issue.path.join('.')}: ${issue.message}`);
   }

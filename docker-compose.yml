@@ -48,8 +48,13 @@ services:
     image: mongo:7
     container_name: worklog-mongo
     ports:
-      # Compass / mongosh ile host'tan bağlanabilmek için dışarı açık
-      - '27017:27017'
+      # SOL taraf = senin makinendeki port, SAĞ taraf = container içindeki port.
+      # 27018 seçildi çünkü makinede zaten 27017'de çalışan bir MongoDB var;
+      # ikisi çakışmasın diye. Container içinden erişimde bu satırın hiç etkisi
+      # yok — api servisi Mongo'ya "mongo:27017" ile, yani container ağı
+      # üzerinden ulaşır. Bu port yalnızca host'tan (Compass, mongosh) bağlanmak
+      # istersen gerekli.
+      - '27018:27017'
     volumes:
       - mongo-data:/data/db
     restart: unless-stopped
@@ -64,3 +69,4 @@ services:
 volumes:
   # Named volume: container silinse de veri kalır.
   mongo-data:
+ 
