@@ -1,0 +1,66 @@
+# =============================================================================
+# Geliştirme ortamı: API + MongoDB
+#
+# Çalıştırmak için:   docker compose up --build
+# Durdurmak için:     docker compose down
+# Veriyi de silmek:   docker compose down -v
+# =============================================================================
+
+services:
+  api:
+    build:
+      context: .
+      target: development
+    container_name: worklog-api
+    ports:
+      - '${PORT:-3000}:3000'
+    env_file:
+      - .env
+    environment:
+      # .env'deki değeri EZER: container içinden Mongo'ya servis adıyla
+      # erişilir ("localhost" container'ın kendisidir, Mongo değil).
+      MONGO_URI: mongodb://mongo:27017/worklog
+      PORT: 3000
+    volumes:
+      # Kaynak kodu bind mount: kod değişince tsx watch yeniden başlatır.
+      - ./src:/app/src
+      # Named volume ile node_modules'ü koruyoruz; host'taki (varsa) klasör
+      # container'ınkini ezmesin.
+      - /app/node_modules
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://127.0.0.1:3000/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 30s
+      timeout: 3s
+      start_period: 20s
+      retries: 3
+
+  mongo:
+    image: mongo:7
+    container_name: worklog-mongo
+    ports:
+      # Compass / mongosh ile host'tan bağlanabilmek için dışarı açık
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+    healthcheck:
+      # API, Mongo "healthy" olmadan başlamasın (depends_on + condition).
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+volumes:
+  # Named volume: container silinse de veri kalır.
+  mongo-data:

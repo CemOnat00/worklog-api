@@ -1,0 +1,25 @@
+# Build context'e girmemesi gerekenler.
+# node_modules'ü dışlamak kritik: image içinde npm ci ile yeniden kurulur,
+# aksi halde host'un platformuna özel binary'ler container'a sızar.
+node_modules
+dist
+coverage
+
+.git
+.gitignore
+.github
+
+.env
+.env.*
+!.env.example
+
+*.md
+docs
+
+.vscode
+.idea
+.DS_Store
+
+Dockerfile
+docker-compose.yml
+.dockerignore

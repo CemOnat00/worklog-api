@@ -1,0 +1,30 @@
+# Bağımlılıklar
+node_modules/
+
+# Derleme çıktısı
+dist/
+build/
+
+# Ortam değişkenleri — ASLA commit edilmez
+.env
+.env.local
+.env.*.local
+
+# Log dosyaları
+logs/
+*.log
+npm-debug.log*
+
+# Test çıktıları
+coverage/
+.nyc_output/
+
+# Editör / işletim sistemi
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Geçici
+*.tmp
+.cache/
