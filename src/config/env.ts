@@ -27,9 +27,7 @@ const envSchema = z.object({
   JWT_EXPIRES_IN: z.string().default('1d'),
 
   // 'silent' testlerde log gürültüsünü kapatmak için kullanılır
-  LOG_LEVEL: z
-    .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
-    .default('info'),
+  LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
 });
 
 const parsed = envSchema.safeParse(process.env);
