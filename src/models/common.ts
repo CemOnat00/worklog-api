@@ -12,6 +12,8 @@ export const baseSchemaOptions = {
       ret.id = String(ret._id);
       delete ret._id;
       delete ret.passwordHash;
+      // Her kayıt zaten isteği yapan kullanıcıya ait; userId yanıtta gereksiz.
+      delete ret.userId;
       return ret;
     },
   },
