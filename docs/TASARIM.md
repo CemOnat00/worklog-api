@@ -33,20 +33,6 @@ Bu, bir takvim ekranının tek istekte ihtiyacı olan her şeyi almasını sağl
 - Container'da çalışan, env ile yapılandırılan, structured logging yapan servis
 - Otomatik test ve CI/CD pipeline
 
-### Kapsam dışı
-
-Bunlar bilinçli olarak kapsam dışında bırakıldı; yapılamadığı için değil, bir haftalık
-kapsama sığmadığı veya projenin amacına hizmet etmediği için.
-
-| Konu | Gerekçe |
-|---|---|
-| Frontend / arayüz | Proje bir backend service olarak tanımlandı |
-| Takvim uygulamalarıyla entegrasyon (Google Calendar vb.) | OAuth akışı bir haftalık kapsama sığmaz |
-| Tekrarlayan etkinlikler (her salı 10:00) | Recurrence kuralı (RRULE) başlı başına bir konu |
-| Bildirim / e-posta gönderimi | Harici servis bağımlılığı, kapsamı şişirir |
-| Çok kullanıcılı paylaşım, ekip özellikleri | Yetkilendirme modeli karmaşıklaşır |
-| Dosya/görsel yükleme | Storage altyapısı gerektirir |
-| Zaman dilimi (timezone) yönetimi | Tüm tarihler UTC olarak saklanır ve döner |
 
 ### Stretch goal (yalnızca vakit kalırsa)
 
