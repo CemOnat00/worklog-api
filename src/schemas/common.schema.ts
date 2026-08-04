@@ -14,8 +14,17 @@ export type IdParam = z.infer<typeof idParamSchema>;
 
 /** Tüm listeleme endpoint'lerinin ortak sayfalama parametreleri */
 export const paginationSchema = z.object({
-  page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  page: z.coerce
+    .number({ invalid_type_error: 'Sayfa numarası sayı olmalıdır' })
+    .int('Sayfa numarası tam sayı olmalıdır')
+    .min(1, 'Sayfa numarası en az 1 olmalıdır')
+    .default(1),
+  limit: z.coerce
+    .number({ invalid_type_error: 'Kayıt sayısı sayı olmalıdır' })
+    .int('Kayıt sayısı tam sayı olmalıdır')
+    .min(1, 'Kayıt sayısı en az 1 olmalıdır')
+    .max(100, 'Kayıt sayısı en fazla 100 olabilir')
+    .default(20),
 });
 
 export type Pagination = z.infer<typeof paginationSchema>;
