@@ -1,11 +1,3 @@
-/**
- * Uygulamanın bilinçli olarak fırlattığı hataların taban sınıfı.
- *
- * Bu sınıftan türeyen hatalar "beklenen" hatalardır (kayıt yok, yetki yok,
- * çakışma var...). errorHandler bunları olduğu gibi istemciye çevirir.
- * Bu sınıftan türemeyen hatalar "beklenmeyen"dir; istemciye 500 döner ve
- * detay sızdırılmaz.
- */
 export class AppError extends Error {
   public readonly statusCode: number;
   public readonly code: string;

@@ -1,18 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { logger } from '../config/logger';
 
-/**
- * Observer (pub/sub) — aktivite kaydı.
- *
- * Neden: Bir görev tamamlandığında "bundan sonra ne olacağı" ile görev
- * tamamlama akışının ilgilenmesi gerekmiyor. Service sadece olayı yayınlar;
- * dinlemek isteyen dinler. İleride bildirim veya istatistik eklenirse yeni bir
- * dinleyici yazılır, service koduna dokunulmaz.
- *
- * Klasör adı bilinçli olarak `bus/`; `events/` denseydi takvim etkinliklerini
- * tutan Event modeliyle karışırdı.
- */
-
 export type ActivityEvents = {
   'task.completed': { userId: string; taskId: string; title: string };
   'task.created': { userId: string; taskId: string; title: string };
