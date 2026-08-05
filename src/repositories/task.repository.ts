@@ -45,6 +45,16 @@ export const taskRepository = {
     return Task.findOne({ _id: id, userId }).exec();
   },
 
+  /**
+   * Ajanda için: sayfalama yok, aralıktaki son tarihi olan görevler.
+   * dueDate'i olmayan görevler ajandaya hiç girmez.
+   */
+  findWithDueDateInRange(userId: string, from: Date, to: Date) {
+    return Task.find({ userId, dueDate: { $gte: from, $lte: to } })
+      .sort({ dueDate: 1 })
+      .exec();
+  },
+
   async findMany(userId: string, query: ListTasksQuery) {
     const filter = buildFilter(userId, query);
 
