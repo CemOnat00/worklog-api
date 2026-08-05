@@ -29,5 +29,17 @@ export const paginationSchema = z.object({
 
 export type Pagination = z.infer<typeof paginationSchema>;
 
-/** "2026-08-10" veya tam ISO tarih kabul eder, Date'e çevirir */
-export const dateSchema = z.coerce.date({ invalid_type_error: 'Geçerli bir tarih giriniz' });
+/**
+ * "2026-08-10" veya tam ISO tarih kabul eder, Date'e çevirir.
+ *
+ * `invalid_type_error` yetmez: `new Date('dun')` bir Date nesnesi üretir ama
+ * geçersizdir ve Zod buna kendi İngilizce "Invalid date" mesajını verir.
+ * `errorMap` şemanın ürettiği TÜM hata mesajlarını değiştirir.
+ */
+export function dateField(label: string) {
+  return z.coerce.date({
+    errorMap: () => ({ message: `${label} geçerli bir tarih olmalıdır` }),
+  });
+}
+
+export const dateSchema = dateField('Tarih');

@@ -38,6 +38,10 @@ export const noteRepository = {
     return Note.findOne({ _id: id, userId }).exec();
   },
 
+  async existsForUser(id: string, userId: string): Promise<boolean> {
+    return (await Note.exists({ _id: id, userId }).exec()) !== null;
+  },
+
   async findMany(userId: string, query: ListNotesQuery) {
     const filter = buildFilter(userId, query);
 

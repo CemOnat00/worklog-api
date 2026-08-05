@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { authRouter } from './auth.routes';
 import { noteRouter } from './note.routes';
+import { taskRouter } from './task.routes';
 
 /**
  * /api/v1 altındaki tüm route'ları birleştiren ana router.
@@ -15,7 +16,7 @@ apiRouter.get('/', (_req, res) => {
       endpoints: {
         auth: '/api/v1/auth',
         notes: '/api/v1/notes',
-        tasks: '/api/v1/tasks      (yakında)',
+        tasks: '/api/v1/tasks',
         events: '/api/v1/events    (yakında)',
         agenda: '/api/v1/agenda    (yakında)',
       },
@@ -25,7 +26,7 @@ apiRouter.get('/', (_req, res) => {
 
 apiRouter.use('/auth', authRouter);
 apiRouter.use('/notes', noteRouter);
+apiRouter.use('/tasks', taskRouter);
 
-// TODO(Çarşamba): apiRouter.use('/tasks', taskRouter);
 // TODO(Çarşamba): apiRouter.use('/events', eventRouter);
 // TODO(Çarşamba): apiRouter.use('/agenda', agendaRouter);
