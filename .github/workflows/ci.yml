@@ -1,0 +1,132 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Aynı branch'e arka arkaya push yapılırsa önceki çalışma iptal edilir.
+# Boşuna runner dakikası harcanmasın.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: '24'
+
+jobs:
+  # ---------------------------------------------------------------------------
+  # Kalite kapısı — her push ve her PR'da çalışır.
+  # Bu iş kırmızıysa merge edilmemeli.
+  # ---------------------------------------------------------------------------
+  quality:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+
+    # Testler gerçek bir MongoDB istiyor.
+    # Servis container'ı, lokalde kullandığımız Mongo'nun CI karşılığı —
+    # test kodunda hiçbir değişiklik gerekmiyor, sadece MONGO_URI farklı.
+    services:
+      mongo:
+        image: mongo:7
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Node.js kur
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # package-lock.json'a göre bağımlılıkları önbelleğe alır.
+          # Lock değişmediği sürece npm ci saniyeler sürer.
+          cache: 'npm'
+
+      # `npm install` değil `npm ci`:
+      # lock dosyasını birebir uygular, node_modules'ü sıfırdan kurar.
+      # Yerelde çalışan sürümlerin aynısı CI'da da kurulur.
+      - name: Bağımlılıkları kur
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Format kontrolü
+        run: npm run format:check
+
+      - name: Tip kontrolü
+        run: npm run typecheck
+
+      - name: Testler
+        run: npm test
+        env:
+          NODE_ENV: test
+          LOG_LEVEL: silent
+          MONGO_URI: mongodb://127.0.0.1:27017/worklog_test
+          JWT_SECRET: ci-ortami-icin-sabit-test-anahtari-32-karakter
+
+      - name: Derleme
+        run: npm run build
+
+      - name: Güvenlik denetimi
+        run: npm audit --audit-level=high
+
+  # ---------------------------------------------------------------------------
+  # Image build & push — YALNIZCA main'e push edildiğinde.
+  # PR'larda çalışmaz: henüz birleşmemiş kod yayınlanmamalı.
+  # ---------------------------------------------------------------------------
+  publish:
+    name: Docker image build & push
+    runs-on: ubuntu-latest
+    needs: quality
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Kodu al
+        uses: actions/checkout@v4
+
+      - name: Buildx kur
+        uses: docker/setup-buildx-action@v3
+
+      # GITHUB_TOKEN otomatik üretilir, elle secret tanımlamaya gerek yok.
+      - name: GHCR'a giriş yap
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # Etiketleri üretir. Repo adındaki büyük harfleri küçültür —
+      # GHCR yalnızca küçük harf kabul ediyor.
+      - name: Etiketleri hazırla
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: Build ve push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          target: production
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # GitHub Actions cache: katmanlar çalışmalar arasında saklanır
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
