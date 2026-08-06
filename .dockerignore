@@ -5,6 +5,10 @@ node_modules
 dist
 coverage
 
+# Testler image'a girmez — CI'da ayrı adımda çalışıyorlar
+tests
+vitest.config.ts
+
 .git
 .gitignore
 .github
