@@ -1,0 +1,52 @@
+# =============================================================================
+# Production benzeri ortam.
+#
+# Geliştirme ortamından farkları:
+#   - production hedefiyle build edilir (devDependencies yok, non-root, derlenmiş JS)
+#   - kaynak kod bind mount EDİLMEZ; image'ın içindeki kod çalışır
+#   - MongoDB portu HOST'A AÇILMAZ; yalnızca container ağından erişilir
+#   - JWT_SECRET dışarıdan verilmek zorunda, varsayılanı yok
+#
+# Çalıştırmak için:
+#   JWT_SECRET=$(openssl rand -base64 48) docker compose -f docker-compose.prod.yml up --build -d
+# =============================================================================
+
+services:
+  api:
+    build:
+      context: .
+      target: production
+    container_name: worklog-api-prod
+    ports:
+      - '${PORT:-3000}:3000'
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      MONGO_URI: mongodb://mongo:27017/worklog
+      # Varsayılan YOK: değişken verilmezse uygulama açılışta hata verip kapanır.
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET tanimlanmali}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-1d}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    depends_on:
+      mongo:
+        condition: service_healthy
+    restart: unless-stopped
+
+  mongo:
+    image: mongo:7
+    container_name: worklog-mongo-prod
+    # `ports` bölümü BİLEREK YOK.
+    # API, Mongo'ya container ağı üzerinden "mongo:27017" ile ulaşıyor.
+    # Dışarı açmak gereksiz bir saldırı yüzeyi olurdu.
+    volumes:
+      - mongo-data-prod:/data/db
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD', 'mongosh', '--quiet', '--eval', "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      start_period: 20s
+      retries: 5
+
+volumes:
+  mongo-data-prod:
