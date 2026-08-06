@@ -10,6 +10,7 @@ services:
   api:
     build:
       context: .
+      target: development
     container_name: worklog-api
     ports:
       - '${PORT:-3000}:3000'
