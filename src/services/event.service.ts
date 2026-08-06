@@ -86,14 +86,17 @@ export const eventService = {
         { field: 'participants', message: 'Toplantı için en az bir katılımcı gereklidir' },
       ]);
     }
-    if (finalType === 'personal' && finalParticipants.length > 0) {
+
+    // Yalnızca kullanıcı AÇIKÇA katılımcı gönderdiyse reddedilir.
+    // Sadece tip değiştiriliyorsa mevcut katılımcılar hata değil,
+    // temizlenecek bir kalıntıdır (aşağıda siliniyor).
+    if (finalType === 'personal' && (input.participants?.length ?? 0) > 0) {
       throw new ValidationError([
         { field: 'participants', message: 'Kişisel etkinlikte katılımcı listesi kullanılamaz' },
       ]);
     }
 
     const data: Partial<IEvent> = { ...input };
-    // Tip 'personal'a çevrildiyse katılımcılar temizlenir
     if (finalType === 'personal') data.participants = [];
 
     const event = await eventRepository.updateForUser(id, userId, data);
