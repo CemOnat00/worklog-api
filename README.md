@@ -90,6 +90,27 @@ yalnızca yapıyı gösterir, gerçek değer içermez.
 
 ---
 
+
+## Ortam değişkenleri
+
+Uygulama açılışta bu değişkenleri Zod ile doğrular. Eksik veya hatalı bir değer
+varsa süreç anlamlı bir mesajla hemen kapanır — yarım yapılandırmayla ayakta
+kalmaz.
+
+| Değişken | Zorunlu | Varsayılan | Açıklama |
+|---|---|---|---|
+| `NODE_ENV` | hayır | `development` | `development` \| `test` \| `production` |
+| `PORT` | hayır | `3000` | API'nin dinlediği port |
+| `MONGO_URI` | **evet** | — | `mongodb` ile başlamalı |
+| `JWT_SECRET` | **evet** | — | En az 32 karakter |
+| `JWT_EXPIRES_IN` | hayır | `1d` | Token ömrü (`15m`, `1d`, `7d`) |
+| `LOG_LEVEL` | hayır | `info` | `silent` testlerde log gürültüsünü kapatır |
+
+`.env` dosyası `.gitignore` içindedir ve asla commit edilmez. `.env.example`
+yalnızca yapıyı gösterir, gerçek değer içermez.
+
+---
+
 ## API
 
 Taban yol: `/api/v1` — sağlık kontrolleri hariç tüm endpoint'ler `Authorization: Bearer <token>` ister.
@@ -365,11 +386,3 @@ PR birleşmez.
 issue kendi dalında geliştirildi, PR ile `main`'e alındı. Commit'ler
 [Conventional Commits](https://www.conventionalcommits.org/) biçimindedir.
 
-## Kapsam dışı
-
-Bilinçli olarak yapılmadı: refresh token ve oturum iptali, rol tabanlı yetki,
-dosya yükleme, e-posta bildirimi, tekrar eden etkinlikler, zaman dilimi
-desteği (tüm zamanlar UTC), gerçek zamanlı güncelleme.
-
-Sebebi kapsamı bir haftada bitirilebilir tutmaktı; hepsi mevcut mimariye
-sonradan eklenebilir.
