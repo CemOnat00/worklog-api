@@ -1,0 +1,1260 @@
+<!doctype html>
+<html lang="tr">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Worklog</title>
+    <!--
+      worklog-api demo istemcisi — tek dosya.
+
+      Tasarım Stitch ile üretildi, buradaki iş yalnızca onu API'ye bağlamak.
+      Derleme adımı yok; Tailwind ve yazı tipleri CDN'den geliyor.
+
+      Önemli: bu sayfa HİÇBİR iş kuralını tekrarlamıyor. Çakışma kontrolü,
+      katılımcı zorunluluğu, tarih doğrulaması, sahiplik filtresi — hepsi
+      sunucuda. Arayüz yalnızca dönen yanıtı ve hatayı gösteriyor.
+    -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: 'class',
+        theme: {
+          extend: {
+            colors: {
+              primary: '#b2c5ff',
+              'on-primary': '#002c72',
+              'primary-container': '#5b8cff',
+              secondary: '#4edea3',
+              'secondary-container': '#00a572',
+              tertiary: '#ffb95f',
+              error: '#ffb4ab',
+              'on-error': '#690005',
+              'error-container': '#93000a',
+              'on-error-container': '#ffdad6',
+              surface: '#11131a',
+              background: '#11131a',
+              'surface-container-lowest': '#0c0e15',
+              'surface-container-low': '#191b22',
+              'surface-container': '#1d1f26',
+              'surface-container-high': '#282a31',
+              'surface-container-highest': '#33343c',
+              'on-surface': '#e1e2ec',
+              'on-surface-variant': '#c3c6d6',
+              outline: '#8d909f',
+              'outline-variant': '#434653',
+            },
+            borderRadius: { DEFAULT: '0.25rem', lg: '0.5rem', xl: '0.75rem', full: '9999px' },
+            spacing: {
+              unit: '4px',
+              xs: '4px',
+              sm: '8px',
+              md: '12px',
+              lg: '16px',
+              xl: '24px',
+              gutter: '12px',
+            },
+            fontFamily: {
+              'body-md': ['Geist'],
+              'body-sm': ['Geist'],
+              'headline-md': ['Geist'],
+              'headline-lg': ['Geist'],
+              button: ['Geist'],
+              'label-mono': ['JetBrains Mono'],
+            },
+            fontSize: {
+              'body-md': ['14px', { lineHeight: '20px' }],
+              'body-sm': ['13px', { lineHeight: '18px' }],
+              'headline-md': ['18px', { lineHeight: '24px', fontWeight: '600' }],
+              'headline-lg': ['24px', { lineHeight: '32px', fontWeight: '600' }],
+              button: ['13px', { lineHeight: '16px', fontWeight: '500' }],
+              'label-mono': ['12px', { lineHeight: '16px', fontWeight: '500' }],
+            },
+          },
+        },
+      };
+    </script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&family=JetBrains+Mono:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+      }
+      ::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #434653;
+        border-radius: 4px;
+      }
+      ::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .material-symbols-outlined {
+        font-variation-settings:
+          'FILL' 0,
+          'wght' 400;
+      }
+      .clamp-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+      }
+    </style>
+  </head>
+
+  <body class="bg-background font-body-md text-body-md text-on-surface">
+    <!-- ==================== GİRİŞ ==================== -->
+    <div id="loginView" class="min-h-screen flex items-center justify-center p-xl">
+      <div class="w-[400px] bg-surface-container border border-outline-variant rounded-xl p-xl">
+        <div class="flex flex-col items-center gap-sm mb-xl">
+          <div
+            class="w-12 h-12 rounded-lg bg-surface-container-high flex items-center justify-center"
+          >
+            <span class="material-symbols-outlined text-primary">terminal</span>
+          </div>
+          <h1 class="font-headline-lg text-headline-lg">Worklog</h1>
+          <p class="font-body-sm text-body-sm text-outline" id="loginSub">
+            Sisteme erişim sağlayın
+          </p>
+        </div>
+
+        <label class="font-label-mono text-label-mono text-on-surface-variant uppercase"
+          >E-posta adresi</label
+        >
+        <input
+          id="email"
+          type="email"
+          placeholder="ornek@sirket.com"
+          class="w-full mt-xs mb-lg px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container"
+        />
+
+        <div id="nameWrap" class="hidden">
+          <label class="font-label-mono text-label-mono text-on-surface-variant uppercase"
+            >İsim</label
+          >
+          <input
+            id="name"
+            placeholder="Cem Onat"
+            class="w-full mt-xs mb-lg px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container"
+          />
+        </div>
+
+        <label class="font-label-mono text-label-mono text-on-surface-variant uppercase"
+          >Parola</label
+        >
+        <input
+          id="password"
+          type="password"
+          value="parola1234"
+          class="w-full mt-xs mb-lg px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container"
+        />
+
+        <button
+          id="btnSubmit"
+          class="w-full py-sm rounded-DEFAULT bg-primary text-on-primary font-button text-button hover:opacity-90"
+        >
+          Giriş Yap
+        </button>
+
+        <button
+          id="btnDemo"
+          class="w-full mt-sm py-sm rounded-DEFAULT bg-surface-container-high border border-outline-variant font-button text-button hover:bg-surface-container-highest"
+        >
+          Demo kullanıcı üret
+        </button>
+
+        <div
+          id="loginErr"
+          class="hidden mt-lg p-md rounded-DEFAULT bg-error-container/30 border border-error text-on-error-container font-body-sm text-body-sm"
+        ></div>
+
+        <div
+          class="mt-xl pt-lg border-t border-outline-variant text-center font-body-sm text-body-sm text-on-surface-variant"
+        >
+          <span id="switchText">Hesabın yok mu?</span>
+          <button id="btnSwitch" class="text-primary hover:underline ml-xs">Kayıt ol</button>
+        </div>
+
+        <div class="mt-lg flex items-center gap-sm">
+          <span class="font-label-mono text-label-mono text-outline">API</span>
+          <input
+            id="baseUrl"
+            value="http://localhost:3000"
+            class="flex-1 px-sm py-xs bg-surface border border-outline-variant rounded-DEFAULT font-label-mono text-label-mono text-outline outline-none focus:border-primary-container"
+          />
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== UYGULAMA ==================== -->
+    <div id="appShell" class="hidden">
+      <aside
+        class="fixed left-0 top-0 h-full w-[220px] bg-surface-container-low border-r border-outline-variant z-50 flex flex-col"
+      >
+        <div class="h-14 flex items-center px-lg border-b border-outline-variant mb-md">
+          <span class="font-headline-md text-headline-md text-primary">Worklog</span>
+        </div>
+        <nav id="nav" class="flex-1 px-sm space-y-xs"></nav>
+        <div
+          class="p-md font-label-mono text-label-mono text-outline border-t border-outline-variant"
+        >
+          worklog-api · demo
+        </div>
+      </aside>
+
+      <div class="pl-[220px]">
+        <header
+          class="fixed top-0 left-[220px] right-0 h-14 bg-surface-container border-b border-outline-variant z-40 flex items-center justify-between px-xl"
+        >
+          <span id="sysStatus" class="font-label-mono text-label-mono text-outline"
+            >Sistem Durumu: —</span
+          >
+          <div class="flex items-center gap-xl">
+            <div class="flex items-center gap-md">
+              <span id="whoami" class="font-body-sm text-body-sm text-on-surface-variant"></span>
+              <div class="w-8 h-8 rounded-full bg-primary flex items-center justify-center">
+                <span class="material-symbols-outlined text-on-primary text-[18px]">person</span>
+              </div>
+            </div>
+            <button
+              id="btnLogout"
+              class="flex items-center gap-xs font-button text-button text-error hover:text-on-error-container"
+            >
+              <span class="material-symbols-outlined text-[18px]">logout</span>Çıkış
+            </button>
+          </div>
+        </header>
+
+        <main class="pt-14 min-h-screen">
+          <div class="p-xl" id="views"></div>
+        </main>
+      </div>
+    </div>
+
+    <!-- Bildirim -->
+    <div
+      id="toast"
+      class="hidden fixed bottom-xl right-xl z-[100] max-w-[420px] px-lg py-md rounded-lg font-body-sm text-body-sm border"
+    ></div>
+
+    <script>
+      /* ===================== Ortak ===================== */
+
+      const $ = (id) => document.getElementById(id);
+      const pad = (n) => String(n).padStart(2, '0');
+      const esc = (s) =>
+        String(s ?? '').replace(
+          /[&<>"]/g,
+          (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c],
+        );
+
+      const AYLAR = [
+        'Ocak',
+        'Şubat',
+        'Mart',
+        'Nisan',
+        'Mayıs',
+        'Haziran',
+        'Temmuz',
+        'Ağustos',
+        'Eylül',
+        'Ekim',
+        'Kasım',
+        'Aralık',
+      ];
+      const GUNLER = ['Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt', 'Paz'];
+      const DURUMLAR = [
+        { anahtar: 'todo', ad: 'Yapılacak' },
+        { anahtar: 'in_progress', ad: 'Devam ediyor' },
+        { anahtar: 'done', ad: 'Tamamlandı' },
+      ];
+      const ONCELIK_RENK = { low: '#4edea3', medium: '#ffb95f', high: '#ffb4ab' };
+
+      // Token bellekte; sayfa yenilenince yeniden giriş gerekir.
+      const durum = {
+        token: null,
+        kullanici: null,
+        gorunum: 'takvim',
+        yil: new Date().getUTCFullYear(),
+        ay: new Date().getUTCMonth(),
+        secilenGun: null,
+        gunler: [],
+        ajandaTip: '',
+        notEtiket: '',
+        notArama: '',
+        notSayfa: 1,
+        gorevOncelik: '',
+      };
+
+      function bildir(metin, tur = 'err') {
+        const el = $('toast');
+        el.textContent = metin;
+        el.className =
+          'fixed bottom-xl right-xl z-[100] max-w-[420px] px-lg py-md rounded-lg font-body-sm text-body-sm border ' +
+          (tur === 'ok'
+            ? 'bg-secondary-container/25 border-secondary text-on-surface'
+            : 'bg-error-container/30 border-error text-on-error-container');
+        clearTimeout(bildir.zaman);
+        bildir.zaman = setTimeout(() => el.classList.add('hidden'), 4500);
+      }
+
+      /**
+       * Tek istek yardımcısı. API'nin hata zarfı sabit olduğu için
+       * ({ error: { code, message, details } }) çözümleme burada tek noktada.
+       */
+      async function istek(yol, secenekler = {}) {
+        const yanit = await fetch($('baseUrl').value + yol, {
+          ...secenekler,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(durum.token ? { Authorization: 'Bearer ' + durum.token } : {}),
+          },
+        });
+
+        if (yanit.status === 204) return null;
+        const govde = await yanit.json();
+
+        if (!yanit.ok) {
+          const hata = govde.error || {};
+          const cakisan = hata.details?.conflictingEvent;
+          const ek = cakisan
+            ? ` — ${cakisan.title} · ${saat(cakisan.startsAt)}–${saat(cakisan.endsAt)}`
+            : Array.isArray(hata.details) && hata.details[0]
+              ? ` — ${hata.details[0].message}`
+              : '';
+          const e = new Error((hata.message || 'Hata') + ek);
+          e.kod = hata.code;
+          e.durum = yanit.status;
+          throw e;
+        }
+        return govde;
+      }
+
+      const saat = (iso) => String(iso).slice(11, 16);
+      const gunAnahtari = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+      const tarihMetni = (iso) => {
+        const [y, a, g] = String(iso).slice(0, 10).split('-');
+        return `${g}.${a}.${y}`;
+      };
+
+      /* ===================== Kimlik ===================== */
+
+      let kayitModu = false;
+
+      $('btnSwitch').onclick = () => {
+        kayitModu = !kayitModu;
+        $('nameWrap').classList.toggle('hidden', !kayitModu);
+        $('btnSubmit').textContent = kayitModu ? 'Kayıt Ol' : 'Giriş Yap';
+        $('switchText').textContent = kayitModu ? 'Zaten hesabın var mı?' : 'Hesabın yok mu?';
+        $('btnSwitch').textContent = kayitModu ? 'Giriş yap' : 'Kayıt ol';
+        $('loginSub').textContent = kayitModu ? 'Yeni hesap oluşturun' : 'Sisteme erişim sağlayın';
+        $('loginErr').classList.add('hidden');
+      };
+
+      $('btnSubmit').onclick = async () => {
+        const govde = kayitModu
+          ? {
+              email: $('email').value.trim(),
+              password: $('password').value,
+              name: $('name').value.trim() || 'Kullanici',
+            }
+          : { email: $('email').value.trim(), password: $('password').value };
+
+        try {
+          const { data } = await istek(kayitModu ? '/api/v1/auth/register' : '/api/v1/auth/login', {
+            method: 'POST',
+            body: JSON.stringify(govde),
+          });
+          girisTamam(data);
+        } catch (e) {
+          $('loginErr').textContent = e.message;
+          $('loginErr').classList.remove('hidden');
+        }
+      };
+
+      $('btnDemo').onclick = async () => {
+        const eposta = `demo-${Date.now()}@test.com`;
+        try {
+          const { data } = await istek('/api/v1/auth/register', {
+            method: 'POST',
+            body: JSON.stringify({
+              email: eposta,
+              password: 'parola1234',
+              name: 'Demo Kullanici',
+            }),
+          });
+          girisTamam(data);
+        } catch (e) {
+          $('loginErr').textContent = e.message;
+          $('loginErr').classList.remove('hidden');
+        }
+      };
+
+      function girisTamam(data) {
+        durum.token = data.token;
+        durum.kullanici = data.user;
+        $('whoami').textContent = data.user.email;
+        $('loginView').classList.add('hidden');
+        $('appShell').classList.remove('hidden');
+        $('loginErr').classList.add('hidden');
+        saglikKontrol();
+        navCiz();
+        gorunumCiz();
+      }
+
+      /**
+       * Çıkış tamamen istemci tarafında. JWT durumsuz olduğu için sunucuda
+       * iptal edilecek bir oturum kaydı yok — token'ı atmak yeterli.
+       */
+      $('btnLogout').onclick = () => {
+        durum.token = null;
+        durum.kullanici = null;
+        durum.secilenGun = null;
+        $('appShell').classList.add('hidden');
+        $('loginView').classList.remove('hidden');
+        $('password').value = 'parola1234';
+      };
+
+      async function saglikKontrol() {
+        try {
+          const { data } = await istek('/health/ready');
+          $('sysStatus').textContent =
+            'Sistem Durumu: ' + (data.checks.database === 'up' ? 'Çevrimiçi' : 'Veritabanı yok');
+        } catch {
+          $('sysStatus').textContent = 'Sistem Durumu: Erişilemiyor';
+        }
+      }
+
+      /* ===================== Gezinme ===================== */
+
+      const MENU = [
+        { anahtar: 'takvim', ad: 'Takvim', ikon: 'calendar_today' },
+        { anahtar: 'ajanda', ad: 'Ajanda', ikon: 'view_agenda' },
+        { anahtar: 'notlar', ad: 'Notlar', ikon: 'description' },
+        { anahtar: 'gorevler', ad: 'Görevler', ikon: 'task_alt' },
+      ];
+
+      function navCiz() {
+        $('nav').innerHTML = MENU.map(
+          (m) => `
+          <button data-view="${m.anahtar}" class="w-full flex items-center gap-md px-md py-sm rounded-DEFAULT transition-all ${
+            durum.gorunum === m.anahtar
+              ? 'bg-surface-container-highest text-on-surface font-bold'
+              : 'text-on-surface-variant hover:bg-surface-container-high hover:text-on-surface'
+          }">
+            <span class="material-symbols-outlined text-[20px]">${m.ikon}</span>
+            <span class="font-button text-button">${m.ad}</span>
+          </button>`,
+        ).join('');
+
+        for (const dugme of $('nav').querySelectorAll('[data-view]')) {
+          dugme.onclick = () => {
+            durum.gorunum = dugme.dataset.view;
+            navCiz();
+            gorunumCiz();
+          };
+        }
+      }
+
+      function gorunumCiz() {
+        if (durum.gorunum === 'takvim') return takvimGorunumu();
+        if (durum.gorunum === 'ajanda') return ajandaGorunumu();
+        if (durum.gorunum === 'notlar') return notlarGorunumu();
+        if (durum.gorunum === 'gorevler') return gorevlerGorunumu();
+      }
+
+      /* ===================== TAKVİM ===================== */
+
+      async function takvimGorunumu() {
+        const sonGun = new Date(Date.UTC(durum.yil, durum.ay + 1, 0)).getUTCDate();
+        const from = gunAnahtari(durum.yil, durum.ay, 1);
+        const to = gunAnahtari(durum.yil, durum.ay, sonGun);
+
+        $('views').innerHTML = `
+          <div class="bg-surface-container border border-outline-variant rounded-lg overflow-hidden">
+            <div class="flex items-center justify-between p-lg bg-surface-container-high border-b border-outline-variant">
+              <div class="flex items-center gap-md">
+                <button id="ayGeri" class="w-8 h-8 rounded-DEFAULT bg-surface border border-outline-variant hover:bg-surface-container-highest flex items-center justify-center">
+                  <span class="material-symbols-outlined text-[20px]">chevron_left</span>
+                </button>
+                <button id="ayIleri" class="w-8 h-8 rounded-DEFAULT bg-surface border border-outline-variant hover:bg-surface-container-highest flex items-center justify-center">
+                  <span class="material-symbols-outlined text-[20px]">chevron_right</span>
+                </button>
+                <span class="font-headline-md text-headline-md ml-sm">${AYLAR[durum.ay]} ${durum.yil}</span>
+              </div>
+              <div class="flex items-center gap-md">
+                <div class="flex gap-md mr-lg font-body-sm text-body-sm text-on-surface-variant">
+                  <span class="flex items-center gap-xs"><i class="w-2 h-2 rounded-full bg-primary-container inline-block"></i>Toplantı</span>
+                  <span class="flex items-center gap-xs"><i class="w-2 h-2 rounded-full bg-secondary inline-block"></i>Kişisel</span>
+                  <span class="flex items-center gap-xs"><i class="w-2 h-2 rounded-full bg-tertiary inline-block"></i>Görev</span>
+                </div>
+                <button id="bugunBtn" class="px-md py-sm rounded-DEFAULT bg-surface border border-outline-variant font-button text-button hover:bg-surface-container-highest">Bugün</button>
+              </div>
+            </div>
+
+            <div class="flex">
+              <div class="flex-1 border-r border-outline-variant">
+                <div class="grid grid-cols-7 border-b border-outline-variant bg-surface-container-low">
+                  ${GUNLER.map(
+                    (g) =>
+                      `<div class="py-sm text-center font-label-mono text-label-mono text-outline uppercase">${g}</div>`,
+                  ).join('')}
+                </div>
+                <div id="takvimGrid" class="grid grid-cols-7 bg-outline-variant gap-[1px]"></div>
+                <div class="flex items-center justify-between p-md bg-surface-container-low border-t border-outline-variant">
+                  <span class="font-label-mono text-label-mono text-outline">Boş günler de dönüyor — /agenda tek istekte tüm ayı veriyor</span>
+                  <span id="takvimToplam" class="font-body-sm text-body-sm text-on-surface-variant"></span>
+                </div>
+              </div>
+              <div id="cekmece" class="w-[380px] shrink-0"></div>
+            </div>
+          </div>`;
+
+        $('ayGeri').onclick = () => {
+          durum.ay -= 1;
+          if (durum.ay < 0) {
+            durum.ay = 11;
+            durum.yil -= 1;
+          }
+          durum.secilenGun = null;
+          takvimGorunumu();
+        };
+        $('ayIleri').onclick = () => {
+          durum.ay += 1;
+          if (durum.ay > 11) {
+            durum.ay = 0;
+            durum.yil += 1;
+          }
+          durum.secilenGun = null;
+          takvimGorunumu();
+        };
+        $('bugunBtn').onclick = () => {
+          const b = new Date();
+          durum.yil = b.getUTCFullYear();
+          durum.ay = b.getUTCMonth();
+          durum.secilenGun = gunAnahtari(durum.yil, durum.ay, b.getUTCDate());
+          takvimGorunumu();
+        };
+
+        try {
+          const { data, meta } = await istek(`/api/v1/agenda?from=${from}&to=${to}`);
+          durum.gunler = data.days;
+          $('takvimToplam').textContent = `${meta.totalEvents} etkinlik · ${meta.totalTasks} görev`;
+          takvimGridCiz();
+          cekmeceCiz();
+        } catch (e) {
+          bildir(e.message);
+        }
+      }
+
+      function takvimGridCiz() {
+        const bugun = new Date().toISOString().slice(0, 10);
+        const ilk = (new Date(Date.UTC(durum.yil, durum.ay, 1)).getUTCDay() + 6) % 7;
+        const kutular = [];
+
+        for (let i = 0; i < ilk; i += 1) {
+          kutular.push('<div class="bg-surface-container-lowest min-h-[110px]"></div>');
+        }
+
+        for (const gun of durum.gunler) {
+          const kayitlar = [
+            ...gun.events.map((e) => ({
+              tur: e.type,
+              metin: `${saat(e.startsAt)} ${e.title}`,
+            })),
+            ...gun.tasks.map((t) => ({ tur: 'task', metin: `☑ ${t.title}` })),
+          ];
+
+          const chipler = kayitlar
+            .slice(0, 3)
+            .map((k) => {
+              const renk =
+                k.tur === 'meeting'
+                  ? 'border-primary-container text-primary'
+                  : k.tur === 'personal'
+                    ? 'border-secondary text-secondary'
+                    : 'border-tertiary text-tertiary';
+              return `<div class="truncate px-xs py-[2px] rounded-DEFAULT border-l-2 bg-surface-container ${renk} font-label-mono text-label-mono">${esc(k.metin)}</div>`;
+            })
+            .join('');
+
+          const fazla =
+            kayitlar.length > 3
+              ? `<div class="font-label-mono text-label-mono text-outline pl-xs">+${kayitlar.length - 3} daha</div>`
+              : '';
+
+          const secili = gun.date === durum.secilenGun;
+          const bugunMu = gun.date === bugun;
+
+          kutular.push(`
+            <div data-date="${gun.date}" class="min-h-[110px] p-sm flex flex-col gap-xs cursor-pointer transition-colors ${
+              secili
+                ? 'bg-surface-container-high ring-1 ring-inset ring-primary-container'
+                : 'bg-background hover:bg-surface-container-low'
+            }">
+              <div class="text-right font-label-mono text-label-mono ${bugunMu ? 'text-primary font-bold' : 'text-outline'}">${Number(gun.date.slice(-2))}</div>
+              ${chipler}${fazla}
+            </div>`);
+        }
+
+        $('takvimGrid').innerHTML = kutular.join('');
+
+        for (const kutu of $('takvimGrid').querySelectorAll('[data-date]')) {
+          kutu.onclick = () => {
+            durum.secilenGun = kutu.dataset.date;
+            takvimGridCiz();
+            cekmeceCiz();
+          };
+        }
+      }
+
+      function cekmeceCiz() {
+        if (!durum.secilenGun) {
+          $('cekmece').innerHTML = `
+            <div class="p-xl h-full flex flex-col items-center justify-center text-center gap-sm">
+              <span class="material-symbols-outlined text-outline text-[32px]">touch_app</span>
+              <p class="font-body-sm text-body-sm text-outline">Etkinlik eklemek için<br />takvimden bir gün seç</p>
+            </div>`;
+          return;
+        }
+
+        const gun = durum.gunler.find((g) => g.date === durum.secilenGun) || {
+          events: [],
+          tasks: [],
+        };
+        const tarih = new Date(durum.secilenGun + 'T00:00:00Z');
+        const baslik = `${tarih.getUTCDate()} ${AYLAR[tarih.getUTCMonth()]} ${GUNLER[(tarih.getUTCDay() + 6) % 7]}`;
+
+        const kayitlar =
+          gun.events
+            .map(
+              (e) => `
+            <div class="p-md rounded-DEFAULT bg-surface-container-high border-l-2 ${e.type === 'meeting' ? 'border-primary-container' : 'border-secondary'} mb-sm">
+              <div class="font-label-mono text-label-mono ${e.type === 'meeting' ? 'text-primary' : 'text-secondary'}">${saat(e.startsAt)} – ${saat(e.endsAt)}</div>
+              <div class="font-body-md text-body-md mt-xs">${esc(e.title)}</div>
+              ${e.participants?.length ? `<div class="font-label-mono text-label-mono text-outline mt-xs">${e.participants.length} katılımcı</div>` : ''}
+              <button data-sil-etkinlik="${e.id}" class="mt-sm font-label-mono text-label-mono text-error hover:underline">Sil</button>
+            </div>`,
+            )
+            .join('') +
+          gun.tasks
+            .map(
+              (t) => `
+            <div class="p-md rounded-DEFAULT bg-surface-container-high border-l-2 border-tertiary mb-sm">
+              <div class="font-label-mono text-label-mono text-tertiary">Görev</div>
+              <div class="font-body-md text-body-md mt-xs">${esc(t.title)}</div>
+            </div>`,
+            )
+            .join('');
+
+        $('cekmece').innerHTML = `
+          <div class="p-lg">
+            <div class="flex items-center justify-between mb-lg">
+              <h2 class="font-headline-md text-headline-md">${baslik}</h2>
+              <button id="cekmeceKapat" class="material-symbols-outlined text-outline hover:text-on-surface">close</button>
+            </div>
+
+            <div class="mb-lg max-h-[240px] overflow-y-auto">
+              ${kayitlar || '<p class="font-body-sm text-body-sm text-outline">Bu günde kayıt yok.</p>'}
+            </div>
+
+            <div class="border-t border-outline-variant pt-lg">
+              <h3 class="font-headline-md text-headline-md mb-md">Etkinlik ekle</h3>
+
+              <div class="flex bg-surface border border-outline-variant rounded-DEFAULT p-xs mb-md">
+                <button data-tip="meeting" class="tipBtn flex-1 py-xs rounded-DEFAULT font-button text-button bg-surface-container-highest">Toplantı</button>
+                <button data-tip="personal" class="tipBtn flex-1 py-xs rounded-DEFAULT font-button text-button text-on-surface-variant">Kişisel</button>
+              </div>
+
+              <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Başlık</label>
+              <input id="evTitle" placeholder="Etkinlik başlığı" class="w-full mt-xs mb-md px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />
+
+              <div class="flex gap-md mb-md">
+                <div class="flex-1">
+                  <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Başlangıç</label>
+                  <input id="evStart" type="time" value="09:00" class="w-full mt-xs px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />
+                </div>
+                <div class="flex-1">
+                  <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Bitiş</label>
+                  <input id="evEnd" type="time" value="10:00" class="w-full mt-xs px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />
+                </div>
+              </div>
+
+              <div id="katilimciWrap" class="mb-md">
+                <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Katılımcılar</label>
+                <input id="evParticipants" placeholder="mentor@sirket.com, ayse@sirket.com" class="w-full mt-xs px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />
+              </div>
+
+              <div id="evErr" class="hidden mb-md p-md rounded-DEFAULT bg-error-container/30 border border-error text-on-error-container font-body-sm text-body-sm"></div>
+
+              <button id="evKaydet" class="w-full py-sm rounded-DEFAULT bg-primary text-on-primary font-button text-button hover:opacity-90">Kaydet</button>
+            </div>
+          </div>`;
+
+        let secilenTip = 'meeting';
+        $('cekmeceKapat').onclick = () => {
+          durum.secilenGun = null;
+          takvimGridCiz();
+          cekmeceCiz();
+        };
+
+        for (const b of document.querySelectorAll('.tipBtn')) {
+          b.onclick = () => {
+            secilenTip = b.dataset.tip;
+            for (const x of document.querySelectorAll('.tipBtn')) {
+              const aktif = x.dataset.tip === secilenTip;
+              x.className =
+                'tipBtn flex-1 py-xs rounded-DEFAULT font-button text-button ' +
+                (aktif ? 'bg-surface-container-highest' : 'text-on-surface-variant');
+            }
+            // Kişisel etkinlikte katılımcı alanı hiç gönderilmiyor:
+            // API boş dizi bile kabul etmiyor.
+            $('katilimciWrap').classList.toggle('hidden', secilenTip !== 'meeting');
+          };
+        }
+
+        for (const b of $('cekmece').querySelectorAll('[data-sil-etkinlik]')) {
+          b.onclick = async () => {
+            try {
+              await istek('/api/v1/events/' + b.dataset.silEtkinlik, { method: 'DELETE' });
+              bildir('Etkinlik silindi.', 'ok');
+              takvimGorunumu();
+            } catch (e) {
+              bildir(e.message);
+            }
+          };
+        }
+
+        $('evKaydet').onclick = async () => {
+          $('evErr').classList.add('hidden');
+
+          const govde = {
+            type: secilenTip,
+            title: $('evTitle').value.trim(),
+            startsAt: `${durum.secilenGun}T${$('evStart').value}:00Z`,
+            endsAt: `${durum.secilenGun}T${$('evEnd').value}:00Z`,
+          };
+
+          if (secilenTip === 'meeting') {
+            govde.participants = $('evParticipants')
+              .value.split(',')
+              .map((s) => s.trim())
+              .filter(Boolean);
+          }
+
+          try {
+            await istek('/api/v1/events', { method: 'POST', body: JSON.stringify(govde) });
+            bildir('Etkinlik eklendi.', 'ok');
+            takvimGorunumu();
+          } catch (e) {
+            $('evErr').innerHTML =
+              `<div class="flex items-start gap-sm"><span class="material-symbols-outlined text-[18px]">error</span><span>${esc(e.message)}</span></div>`;
+            $('evErr').classList.remove('hidden');
+          }
+        };
+      }
+
+      /* ===================== AJANDA ===================== */
+
+      async function ajandaGorunumu() {
+        const sonGun = new Date(Date.UTC(durum.yil, durum.ay + 1, 0)).getUTCDate();
+        const from = ajandaGorunumu.from || gunAnahtari(durum.yil, durum.ay, 1);
+        const to = ajandaGorunumu.to || gunAnahtari(durum.yil, durum.ay, sonGun);
+
+        const tipDugmesi = (deger, ad) =>
+          `<button data-tip="${deger}" class="px-md py-sm rounded-DEFAULT font-button text-button border ${
+            durum.ajandaTip === deger
+              ? 'border-primary-container text-primary bg-primary-container/10'
+              : 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+          }">${ad}</button>`;
+
+        $('views').innerHTML = `
+          <div class="flex items-center justify-between mb-xl">
+            <div class="flex items-center gap-lg">
+              <h1 class="font-headline-lg text-headline-lg">Ajanda</h1>
+              <div class="flex items-center gap-sm px-md py-sm bg-surface-container border border-outline-variant rounded-DEFAULT">
+                <span class="material-symbols-outlined text-[18px] text-outline">date_range</span>
+                <input id="ajFrom" type="date" value="${from}" class="bg-transparent font-label-mono text-label-mono outline-none" />
+                <span class="text-outline">—</span>
+                <input id="ajTo" type="date" value="${to}" class="bg-transparent font-label-mono text-label-mono outline-none" />
+              </div>
+            </div>
+            <div class="flex gap-sm">
+              ${tipDugmesi('', 'Tümü')}${tipDugmesi('meeting', 'Toplantı')}${tipDugmesi('personal', 'Kişisel')}
+            </div>
+          </div>
+          <div id="ajandaListe" class="space-y-md"></div>`;
+
+        for (const b of $('views').querySelectorAll('[data-tip]')) {
+          b.onclick = () => {
+            durum.ajandaTip = b.dataset.tip;
+            ajandaGorunumu();
+          };
+        }
+        for (const alan of ['ajFrom', 'ajTo']) {
+          $(alan).onchange = () => {
+            ajandaGorunumu.from = $('ajFrom').value;
+            ajandaGorunumu.to = $('ajTo').value;
+            ajandaGorunumu();
+          };
+        }
+
+        try {
+          const tip = durum.ajandaTip ? `&type=${durum.ajandaTip}` : '';
+          const { data } = await istek(`/api/v1/agenda?from=${from}&to=${to}${tip}`);
+          $('ajandaListe').innerHTML = data.days.map(ajandaSatiri).join('');
+        } catch (e) {
+          $('ajandaListe').innerHTML =
+            `<p class="font-body-sm text-body-sm text-error">${esc(e.message)}</p>`;
+        }
+      }
+
+      function ajandaSatiri(gun) {
+        const tarih = new Date(gun.date + 'T00:00:00Z');
+        const bos = gun.events.length === 0 && gun.tasks.length === 0;
+
+        const kayitlar = bos
+          ? `<div class="flex-1 flex items-center gap-md">
+               <div class="flex-1 h-[1px] bg-outline-variant"></div>
+               <span class="font-label-mono text-label-mono text-outline uppercase">Kayıt yok</span>
+               <div class="flex-1 h-[1px] bg-outline-variant"></div>
+             </div>`
+          : `<div class="flex-1 space-y-sm">
+              ${gun.events
+                .map(
+                  (e) => `
+                <div class="flex gap-md p-md rounded-DEFAULT bg-surface-container border border-outline-variant border-l-2 ${e.type === 'meeting' ? 'border-l-primary-container' : 'border-l-secondary'}">
+                  <div class="font-label-mono text-label-mono text-on-surface-variant leading-5">
+                    ${saat(e.startsAt)}<br />${saat(e.endsAt)}
+                  </div>
+                  <div class="flex-1">
+                    <div class="font-body-md text-body-md">${esc(e.title)}</div>
+                    <div class="mt-xs flex items-center gap-sm">
+                      <span class="px-sm py-[2px] rounded-full border font-label-mono text-label-mono ${e.type === 'meeting' ? 'border-primary-container text-primary' : 'border-secondary text-secondary'}">
+                        ${e.type === 'meeting' ? 'Toplantı' : 'Kişisel'}
+                      </span>
+                      ${e.description ? `<span class="font-body-sm text-body-sm text-on-surface-variant">${esc(e.description)}</span>` : ''}
+                    </div>
+                  </div>
+                  ${e.participants?.length ? `<span class="font-label-mono text-label-mono text-outline">+${e.participants.length}</span>` : ''}
+                </div>`,
+                )
+                .join('')}
+              ${gun.tasks
+                .map(
+                  (t) => `
+                <div class="flex items-center gap-md p-md rounded-DEFAULT bg-surface-container-low border border-outline-variant">
+                  <span class="material-symbols-outlined text-[18px] text-outline">check_box_outline_blank</span>
+                  <i class="w-2 h-2 rounded-full inline-block" style="background:${ONCELIK_RENK[t.priority]}"></i>
+                  <span class="flex-1 font-body-md text-body-md">${esc(t.title)}</span>
+                  <span class="font-label-mono text-label-mono text-outline">${t.status === 'done' ? 'Tamamlandı' : t.priority.toUpperCase()}</span>
+                </div>`,
+                )
+                .join('')}
+             </div>`;
+
+        return `
+          <div class="flex gap-lg">
+            <div class="w-[60px] shrink-0 text-center pt-sm">
+              <div class="font-headline-md text-headline-md">${pad(tarih.getUTCDate())}</div>
+              <div class="font-label-mono text-label-mono text-outline uppercase">${GUNLER[(tarih.getUTCDay() + 6) % 7]}</div>
+            </div>
+            ${kayitlar}
+          </div>`;
+      }
+
+      /* ===================== NOTLAR ===================== */
+
+      async function notlarGorunumu() {
+        $('views').innerHTML = `
+          <div class="flex items-center gap-lg mb-lg">
+            <div class="flex-1 flex items-center gap-sm px-md py-sm bg-surface-container border border-outline-variant rounded-DEFAULT">
+              <span class="material-symbols-outlined text-[18px] text-outline">search</span>
+              <input id="notArama" value="${esc(durum.notArama)}" placeholder="Notlarda ara (Enter)" class="flex-1 bg-transparent outline-none" />
+            </div>
+            <button id="yeniNot" class="flex items-center gap-xs px-lg py-sm rounded-DEFAULT bg-primary text-on-primary font-button text-button hover:opacity-90">
+              <span class="material-symbols-outlined text-[18px]">add</span>Yeni not
+            </button>
+          </div>
+          <div id="etiketler" class="flex items-center gap-sm mb-xl flex-wrap"></div>
+          <div id="sabitli"></div>
+          <div id="tumNotlar"></div>
+          <div id="notSayfalama" class="flex items-center justify-between mt-xl pt-lg border-t border-outline-variant"></div>`;
+
+        $('notArama').onkeydown = (e) => {
+          if (e.key === 'Enter') {
+            durum.notArama = e.target.value.trim();
+            durum.notSayfa = 1;
+            notlarGorunumu();
+          }
+        };
+        $('yeniNot').onclick = () => notFormu();
+
+        try {
+          const parcalar = [`page=${durum.notSayfa}`, 'limit=12', 'sort=-updatedAt'];
+          if (durum.notArama) parcalar.push('q=' + encodeURIComponent(durum.notArama));
+          if (durum.notEtiket) parcalar.push('tag=' + encodeURIComponent(durum.notEtiket));
+
+          const { data, meta } = await istek('/api/v1/notes?' + parcalar.join('&'));
+
+          const etiketler = [...new Set(data.flatMap((n) => n.tags))];
+          $('etiketler').innerHTML =
+            `<span class="font-label-mono text-label-mono text-outline uppercase mr-sm">Filtreler:</span>` +
+            (etiketler.length
+              ? etiketler
+                  .map(
+                    (t) =>
+                      `<button data-etiket="${esc(t)}" class="px-md py-xs rounded-full border font-label-mono text-label-mono ${
+                        durum.notEtiket === t
+                          ? 'border-primary-container text-primary bg-primary-container/10'
+                          : 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
+                      }">#${esc(t)}</button>`,
+                  )
+                  .join('')
+              : '<span class="font-body-sm text-body-sm text-outline">etiket yok</span>');
+
+          for (const b of $('etiketler').querySelectorAll('[data-etiket]')) {
+            b.onclick = () => {
+              durum.notEtiket = durum.notEtiket === b.dataset.etiket ? '' : b.dataset.etiket;
+              durum.notSayfa = 1;
+              notlarGorunumu();
+            };
+          }
+
+          const sabitli = data.filter((n) => n.isPinned);
+          const digerleri = data.filter((n) => !n.isPinned);
+
+          $('sabitli').innerHTML = sabitli.length
+            ? `<div class="flex items-center gap-sm mb-md">
+                 <span class="material-symbols-outlined text-[18px] text-outline">push_pin</span>
+                 <span class="font-label-mono text-label-mono text-outline uppercase">Sabitlenmiş</span>
+               </div>
+               <div class="grid grid-cols-3 gap-gutter mb-xl">${sabitli.map(notKarti).join('')}</div>`
+            : '';
+
+          $('tumNotlar').innerHTML = `
+            <div class="font-label-mono text-label-mono text-outline uppercase mb-md">Tüm notlar</div>
+            <div class="grid grid-cols-3 gap-gutter">
+              ${digerleri.map(notKarti).join('')}
+              ${
+                digerleri.length === 0 && sabitli.length === 0
+                  ? '<p class="font-body-sm text-body-sm text-outline">Henüz not yok.</p>'
+                  : ''
+              }
+            </div>`;
+
+          $('notSayfalama').innerHTML = `
+            <span class="font-body-sm text-body-sm text-on-surface-variant">
+              Gösterilen: ${data.length ? (meta.page - 1) * meta.limit + 1 : 0}-${(meta.page - 1) * meta.limit + data.length} / ${meta.total} not
+            </span>
+            <div class="flex gap-sm">
+              <button id="notGeri" ${meta.page <= 1 ? 'disabled' : ''} class="w-8 h-8 rounded-DEFAULT bg-surface-container border border-outline-variant disabled:opacity-40 flex items-center justify-center"><span class="material-symbols-outlined text-[18px]">chevron_left</span></button>
+              <button id="notIleri" ${meta.page >= meta.totalPages ? 'disabled' : ''} class="w-8 h-8 rounded-DEFAULT bg-surface-container border border-outline-variant disabled:opacity-40 flex items-center justify-center"><span class="material-symbols-outlined text-[18px]">chevron_right</span></button>
+            </div>`;
+
+          $('notGeri').onclick = () => {
+            durum.notSayfa -= 1;
+            notlarGorunumu();
+          };
+          $('notIleri').onclick = () => {
+            durum.notSayfa += 1;
+            notlarGorunumu();
+          };
+
+          notKartiOlaylari();
+        } catch (e) {
+          bildir(e.message);
+        }
+      }
+
+      function notKarti(n) {
+        return `
+          <div class="p-lg bg-surface-container border border-outline-variant rounded-lg flex flex-col">
+            <div class="flex items-start justify-between gap-sm">
+              <h3 class="font-headline-md text-headline-md">${esc(n.title)}</h3>
+              <button data-sabitle="${n.id}" data-durum="${n.isPinned}" class="material-symbols-outlined text-[18px] ${n.isPinned ? 'text-primary' : 'text-outline'} hover:text-primary">push_pin</button>
+            </div>
+            <p class="clamp-2 mt-sm font-body-sm text-body-sm text-on-surface-variant flex-1">${esc(n.content || '—')}</p>
+            <div class="mt-lg pt-md border-t border-outline-variant flex items-center justify-between">
+              <div class="flex gap-sm flex-wrap">
+                ${n.tags.map((t) => `<span class="font-label-mono text-label-mono text-primary">#${esc(t)}</span>`).join('')}
+              </div>
+              <div class="flex items-center gap-md">
+                <span class="font-label-mono text-label-mono text-outline">${tarihMetni(n.updatedAt)}</span>
+                <button data-sil-not="${n.id}" class="material-symbols-outlined text-[18px] text-outline hover:text-error">delete</button>
+              </div>
+            </div>
+          </div>`;
+      }
+
+      function notKartiOlaylari() {
+        for (const b of document.querySelectorAll('[data-sabitle]')) {
+          b.onclick = async () => {
+            try {
+              await istek('/api/v1/notes/' + b.dataset.sabitle, {
+                method: 'PATCH',
+                body: JSON.stringify({ isPinned: b.dataset.durum !== 'true' }),
+              });
+              notlarGorunumu();
+            } catch (e) {
+              bildir(e.message);
+            }
+          };
+        }
+        for (const b of document.querySelectorAll('[data-sil-not]')) {
+          b.onclick = async () => {
+            try {
+              await istek('/api/v1/notes/' + b.dataset.silNot, { method: 'DELETE' });
+              bildir('Not silindi.', 'ok');
+              notlarGorunumu();
+            } catch (e) {
+              bildir(e.message);
+            }
+          };
+        }
+      }
+
+      function notFormu() {
+        pencere(
+          'Yeni not',
+          `
+          <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Başlık</label>
+          <input id="nTitle" class="w-full mt-xs mb-md px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />
+          <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">İçerik</label>
+          <textarea id="nContent" rows="5" class="w-full mt-xs mb-md px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container"></textarea>
+          <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Etiketler (virgülle)</label>
+          <input id="nTags" placeholder="staj, sunum" class="w-full mt-xs px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />`,
+          async () => {
+            const govde = {
+              title: $('nTitle').value.trim(),
+              content: $('nContent').value.trim() || undefined,
+              tags: $('nTags')
+                .value.split(',')
+                .map((s) => s.trim())
+                .filter(Boolean),
+            };
+            await istek('/api/v1/notes', { method: 'POST', body: JSON.stringify(govde) });
+            bildir('Not eklendi.', 'ok');
+            notlarGorunumu();
+          },
+        );
+      }
+
+      /* ===================== GÖREVLER ===================== */
+
+      async function gorevlerGorunumu() {
+        $('views').innerHTML = `
+          <div class="flex items-center justify-between mb-xl">
+            <div class="flex items-center gap-sm">
+              <select id="oncelikFiltre" class="px-md py-sm bg-surface-container border border-outline-variant rounded-DEFAULT font-button text-button outline-none">
+                <option value="">Tüm öncelikler</option>
+                <option value="high">Yüksek</option>
+                <option value="medium">Orta</option>
+                <option value="low">Düşük</option>
+              </select>
+            </div>
+            <button id="yeniGorev" class="flex items-center gap-xs px-lg py-sm rounded-DEFAULT bg-primary text-on-primary font-button text-button hover:opacity-90">
+              <span class="material-symbols-outlined text-[18px]">add</span>Yeni görev
+            </button>
+          </div>
+          <div class="grid grid-cols-3 gap-gutter" id="kolonlar"></div>`;
+
+        $('oncelikFiltre').value = durum.gorevOncelik;
+        $('oncelikFiltre').onchange = (e) => {
+          durum.gorevOncelik = e.target.value;
+          gorevlerGorunumu();
+        };
+        $('yeniGorev').onclick = () => gorevFormu();
+
+        try {
+          const oncelik = durum.gorevOncelik ? `&priority=${durum.gorevOncelik}` : '';
+          const sonuclar = await Promise.all(
+            DURUMLAR.map((d) =>
+              istek(`/api/v1/tasks?status=${d.anahtar}&limit=100&sort=-createdAt${oncelik}`),
+            ),
+          );
+
+          $('kolonlar').innerHTML = DURUMLAR.map(
+            (d, i) => `
+            <div class="bg-surface-container-low border border-outline-variant rounded-lg min-h-[420px]">
+              <div class="flex items-center justify-between p-lg border-b border-outline-variant">
+                <span class="font-label-mono text-label-mono text-on-surface-variant uppercase">${d.ad}</span>
+                <span class="px-sm rounded-DEFAULT bg-surface-container-high font-label-mono text-label-mono">${sonuclar[i].meta.total}</span>
+              </div>
+              <div class="p-md space-y-md">
+                ${sonuclar[i].data.map((t) => gorevKarti(t, d.anahtar)).join('') || '<p class="font-body-sm text-body-sm text-outline p-sm">Kayıt yok.</p>'}
+              </div>
+            </div>`,
+          ).join('');
+
+          gorevKartiOlaylari();
+        } catch (e) {
+          bildir(e.message);
+        }
+      }
+
+      function gorevKarti(t, durumAnahtari) {
+        const tamamlandi = durumAnahtari === 'done';
+        const geciktiMi = !tamamlandi && t.dueDate && new Date(t.dueDate) < new Date();
+
+        return `
+          <div class="p-md rounded-DEFAULT bg-surface-container border border-outline-variant">
+            <div class="flex items-start justify-between gap-sm">
+              <span class="font-body-md text-body-md ${tamamlandi ? 'line-through text-outline' : ''}">${esc(t.title)}</span>
+              <i class="w-2 h-2 mt-[6px] rounded-full shrink-0 inline-block" style="background:${ONCELIK_RENK[t.priority]}"></i>
+            </div>
+
+            ${
+              tamamlandi
+                ? `<div class="mt-sm flex items-center gap-xs font-label-mono text-label-mono text-outline">
+                     <span class="material-symbols-outlined text-[14px]">check_circle</span>
+                     Tamamlandı: ${tarihMetni(t.completedAt)}
+                   </div>`
+                : t.dueDate
+                  ? `<div class="mt-sm flex items-center gap-xs font-label-mono text-label-mono ${geciktiMi ? 'text-error' : 'text-outline'}">
+                       <span class="material-symbols-outlined text-[14px]">calendar_today</span>
+                       ${tarihMetni(t.dueDate)}
+                     </div>`
+                  : ''
+            }
+
+            <div class="mt-sm flex gap-xs flex-wrap">
+              ${t.tags.map((x) => `<span class="px-sm py-[1px] rounded-DEFAULT border border-outline-variant font-label-mono text-label-mono text-on-surface-variant uppercase">${esc(x)}</span>`).join('')}
+              ${t.noteId ? '<span class="material-symbols-outlined text-[14px] text-outline">description</span>' : ''}
+              ${t.eventId ? '<span class="material-symbols-outlined text-[14px] text-outline">event</span>' : ''}
+            </div>
+
+            <div class="mt-md pt-sm border-t border-outline-variant flex items-center justify-between">
+              <div class="flex gap-xs">
+                ${DURUMLAR.filter((d) => d.anahtar !== durumAnahtari)
+                  .map(
+                    (d) =>
+                      `<button data-tasi="${t.id}" data-hedef="${d.anahtar}" class="px-sm py-[2px] rounded-DEFAULT bg-surface-container-high border border-outline-variant font-label-mono text-label-mono hover:border-primary-container">${d.ad}</button>`,
+                  )
+                  .join('')}
+              </div>
+              <button data-sil-gorev="${t.id}" class="material-symbols-outlined text-[16px] text-outline hover:text-error">delete</button>
+            </div>
+          </div>`;
+      }
+
+      function gorevKartiOlaylari() {
+        for (const b of document.querySelectorAll('[data-tasi]')) {
+          b.onclick = async () => {
+            try {
+              await istek(`/api/v1/tasks/${b.dataset.tasi}/status`, {
+                method: 'PATCH',
+                body: JSON.stringify({ status: b.dataset.hedef }),
+              });
+              gorevlerGorunumu();
+            } catch (e) {
+              bildir(e.message);
+            }
+          };
+        }
+        for (const b of document.querySelectorAll('[data-sil-gorev]')) {
+          b.onclick = async () => {
+            try {
+              await istek('/api/v1/tasks/' + b.dataset.silGorev, { method: 'DELETE' });
+              bildir('Görev silindi.', 'ok');
+              gorevlerGorunumu();
+            } catch (e) {
+              bildir(e.message);
+            }
+          };
+        }
+      }
+
+      function gorevFormu() {
+        pencere(
+          'Yeni görev',
+          `
+          <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Başlık</label>
+          <input id="gTitle" class="w-full mt-xs mb-md px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />
+          <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Açıklama</label>
+          <textarea id="gDesc" rows="3" class="w-full mt-xs mb-md px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container"></textarea>
+          <div class="flex gap-md mb-md">
+            <div class="flex-1">
+              <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Öncelik</label>
+              <select id="gPriority" class="w-full mt-xs px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none">
+                <option value="low">Düşük</option>
+                <option value="medium" selected>Orta</option>
+                <option value="high">Yüksek</option>
+              </select>
+            </div>
+            <div class="flex-1">
+              <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Son tarih</label>
+              <input id="gDue" type="date" class="w-full mt-xs px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none" />
+            </div>
+          </div>
+          <label class="font-label-mono text-label-mono text-on-surface-variant uppercase">Etiketler (virgülle)</label>
+          <input id="gTags" placeholder="backend, kritik" class="w-full mt-xs px-md py-sm bg-surface border border-outline-variant rounded-DEFAULT outline-none focus:border-primary-container" />`,
+          async () => {
+            const govde = {
+              title: $('gTitle').value.trim(),
+              description: $('gDesc').value.trim() || undefined,
+              priority: $('gPriority').value,
+              tags: $('gTags')
+                .value.split(',')
+                .map((s) => s.trim())
+                .filter(Boolean),
+            };
+            if ($('gDue').value) govde.dueDate = `${$('gDue').value}T17:00:00Z`;
+
+            await istek('/api/v1/tasks', { method: 'POST', body: JSON.stringify(govde) });
+            bildir('Görev eklendi.', 'ok');
+            gorevlerGorunumu();
+          },
+        );
+      }
+
+      /* ===================== Pencere (modal) ===================== */
+
+      function pencere(baslik, icerikHtml, kaydet) {
+        const katman = document.createElement('div');
+        katman.className = 'fixed inset-0 z-[90] bg-black/60 flex items-center justify-center p-xl';
+        katman.innerHTML = `
+          <div class="w-[520px] bg-surface-container border border-outline-variant rounded-xl p-xl">
+            <div class="flex items-center justify-between mb-lg">
+              <h2 class="font-headline-md text-headline-md">${esc(baslik)}</h2>
+              <button data-kapat class="material-symbols-outlined text-outline hover:text-on-surface">close</button>
+            </div>
+            ${icerikHtml}
+            <div data-hata class="hidden mt-md p-md rounded-DEFAULT bg-error-container/30 border border-error text-on-error-container font-body-sm text-body-sm"></div>
+            <div class="mt-xl flex gap-sm">
+              <button data-kaydet class="flex-1 py-sm rounded-DEFAULT bg-primary text-on-primary font-button text-button hover:opacity-90">Kaydet</button>
+              <button data-kapat class="flex-1 py-sm rounded-DEFAULT bg-surface-container-high border border-outline-variant font-button text-button">Vazgeç</button>
+            </div>
+          </div>`;
+
+        document.body.appendChild(katman);
+
+        for (const b of katman.querySelectorAll('[data-kapat]')) {
+          b.onclick = () => katman.remove();
+        }
+
+        katman.querySelector('[data-kaydet]').onclick = async () => {
+          const hataKutusu = katman.querySelector('[data-hata]');
+          hataKutusu.classList.add('hidden');
+          try {
+            await kaydet();
+            katman.remove();
+          } catch (e) {
+            hataKutusu.textContent = e.message;
+            hataKutusu.classList.remove('hidden');
+          }
+        };
+      }
+    </script>
+  </body>
+</html>

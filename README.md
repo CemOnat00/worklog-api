@@ -68,6 +68,22 @@ cp .env.example .env      # JWT_SECRET'i doldur
 npm run dev
 ```
 
+### Demo arayüzü
+
+`demo/index.html` dosyasını tarayıcıda aç. Tek dosyalık bir istemci; derleme
+adımı ve paket kurulumu yok (Tailwind ve yazı tipleri CDN'den gelir).
+
+"Demo kullanıcı üret" düğmesi yeni bir hesap açıp giriş yapar. Dört ekran var:
+
+- **Takvim** — ay görünümü, gün seçince yan panelden etkinlik ekleme
+- **Ajanda** — tarih aralığı ve tipe göre gün gün liste
+- **Notlar** — arama, etiket filtresi, sabitleme, sayfalama
+- **Görevler** — duruma göre üç sütun, kart üzerinden durum değiştirme
+
+Sayfa hiçbir iş kuralını tekrarlamaz: çakışma kontrolü, katılımcı zorunluluğu,
+tarih doğrulaması ve sahiplik filtresi sunucuda yapılır; arayüz yalnızca dönen
+yanıtı ve hatayı gösterir.
+
 ---
 
 ## Ortam değişkenleri
@@ -365,11 +381,3 @@ PR birleşmez.
 issue kendi dalında geliştirildi, PR ile `main`'e alındı. Commit'ler
 [Conventional Commits](https://www.conventionalcommits.org/) biçimindedir.
 
-## Kapsam dışı
-
-Bilinçli olarak yapılmadı: refresh token ve oturum iptali, rol tabanlı yetki,
-dosya yükleme, e-posta bildirimi, tekrar eden etkinlikler, zaman dilimi
-desteği (tüm zamanlar UTC), gerçek zamanlı güncelleme.
-
-Sebebi kapsamı bir haftada bitirilebilir tutmaktı; hepsi mevcut mimariye
-sonradan eklenebilir.
