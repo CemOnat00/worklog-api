@@ -68,23 +68,28 @@ cp .env.example .env      # JWT_SECRET'i doldur
 npm run dev
 ```
 
-### Demo arayüzü
+---
 
-`demo/index.html` dosyasını tarayıcıda aç. Tek dosyalık bir istemci; derleme
-adımı ve paket kurulumu yok (Tailwind ve yazı tipleri CDN'den gelir).
+## Ortam değişkenleri
 
-"Demo kullanıcı üret" düğmesi yeni bir hesap açıp giriş yapar. Dört ekran var:
+Uygulama açılışta bu değişkenleri Zod ile doğrular. Eksik veya hatalı bir değer
+varsa süreç anlamlı bir mesajla hemen kapanır — yarım yapılandırmayla ayakta
+kalmaz.
 
-- **Takvim** — ay görünümü, gün seçince yan panelden etkinlik ekleme
-- **Ajanda** — tarih aralığı ve tipe göre gün gün liste
-- **Notlar** — arama, etiket filtresi, sabitleme, sayfalama
-- **Görevler** — duruma göre üç sütun, kart üzerinden durum değiştirme
+| Değişken | Zorunlu | Varsayılan | Açıklama |
+|---|---|---|---|
+| `NODE_ENV` | hayır | `development` | `development` \| `test` \| `production` |
+| `PORT` | hayır | `3000` | API'nin dinlediği port |
+| `MONGO_URI` | **evet** | — | `mongodb` ile başlamalı |
+| `JWT_SECRET` | **evet** | — | En az 32 karakter |
+| `JWT_EXPIRES_IN` | hayır | `1d` | Token ömrü (`15m`, `1d`, `7d`) |
+| `LOG_LEVEL` | hayır | `info` | `silent` testlerde log gürültüsünü kapatır |
 
-Sayfa hiçbir iş kuralını tekrarlamaz: çakışma kontrolü, katılımcı zorunluluğu,
-tarih doğrulaması ve sahiplik filtresi sunucuda yapılır; arayüz yalnızca dönen
-yanıtı ve hatayı gösterir.
+`.env` dosyası `.gitignore` içindedir ve asla commit edilmez. `.env.example`
+yalnızca yapıyı gösterir, gerçek değer içermez.
 
 ---
+
 
 ## Ortam değişkenleri
 
