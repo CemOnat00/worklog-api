@@ -31,5 +31,3 @@ apiRouter.use('/notes', noteRouter);
 apiRouter.use('/tasks', taskRouter);
 apiRouter.use('/events', eventRouter);
 apiRouter.use('/agenda', agendaRouter);
-
-// TODO(Çarşamba): apiRouter.use('/agenda', agendaRouter);

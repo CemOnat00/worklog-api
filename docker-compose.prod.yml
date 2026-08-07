@@ -16,6 +16,8 @@ services:
     build:
       context: .
       target: production
+    # Geliştirme ortamıyla aynı imaj adını paylaşmamak için açıkça veriliyor.
+    image: worklog-api:prod
     container_name: worklog-api-prod
     ports:
       - '${PORT:-3000}:3000'

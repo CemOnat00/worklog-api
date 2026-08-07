@@ -11,6 +11,10 @@ services:
     build:
       context: .
       target: development
+    # İmaj adı açıkça veriliyor. Verilmezse Compose ikisine de aynı adı üretir
+    # ve production için derlenen imaj geliştirmede yeniden kullanılır —
+    # o imajda devDependencies olmadığı için uygulama açılışta çöküyordu.
+    image: worklog-api:dev
     container_name: worklog-api
     ports:
       - '${PORT:-3000}:3000'
